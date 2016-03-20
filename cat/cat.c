@@ -1,18 +1,34 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
 ssize_t cat(ssize_t fn)
 {
+    char buffer[2048];
     ssize_t nread;
-    char buffer[128];
-    while ((nread = read(fn, buffer, 128)) > 0)
+
+    while (42)
     {
-        ssize_t nwrite = write(STDOUT_FILENO, buffer, nread);
-        if (nwrite < nread)
+        nread = read(fn, buffer, sizeof(buffer));
+        if (nread < 0)
         {
-            perror("write's error");
-            return -1;
+            if (errno == EINTR)
+                continue;
+            break;
+        } else if (nread == 0)
+            break;
+        ssize_t p = 0;
+        while (p < nread)
+        {   
+            ssize_t nwrite = write(STDOUT_FILENO, buffer + p, nread - p);
+            if (nwrite < 0)
+            {
+                if (errno == EINTR)
+                    continue;
+                return -1;
+            }
+            p += nwrite;
         }
     }
 
